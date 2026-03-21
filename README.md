@@ -1,5 +1,5 @@
-# SayoDevice-O3C-v1-Overlay
-SayoDevice O3C v1 Live Key Overlay
+# SayoDevice-Keypress-Overlay
+SayoDevice O3C v1 Live Keypress Overlay
 
 ## Showcase:
 <p align="center">
