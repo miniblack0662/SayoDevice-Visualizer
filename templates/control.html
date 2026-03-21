@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Handcam Overlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:        #0a0a0a;
+  --surface:   #111111;
+  --card:      #1a1a1a;
+  --border:    #333333;
+  --accent:    #ffffff;
+  --accent2:   #aaaaaa;
+  --text:      #ffffff;
+  --muted:     #666666;
+  --success:   #ffffff;
+  --mono:      'Press Start 2P', monospace;
+  --display:   'Press Start 2P', monospace;
+}
+
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+header {
+  width: 100%;
+  max-width: 780px;
+  padding: 24px 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.logo {
+  font-family: var(--display);
+  font-size: 7px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+h1 {
+  font-family: var(--display);
+  font-size: clamp(12px, 2vw, 16px);
+  font-weight: 400;
+  letter-spacing: 0.05em;
+}
+
+.subtitle {
+  font-size: 7px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+}
+
+/* ── Pill status ── */
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 0px;
+  font-size: 7px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.pill.live {
+  background: transparent;
+  color: #ffffff;
+  border: 1px solid #555555;
+}
+.pill.live::before {
+  content:'';
+  width:6px; height:6px;
+  border-radius:50%;
+  background: #ffffff;
+  animation: blink 1.4s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.obs-url {
+  font-size: 7px;
+  color: var(--muted);
+  font-family: var(--mono);
+  user-select: all;
+  cursor: pointer;
+  transition: color .2s;
+}
+.obs-url:hover { color: var(--accent); }
+
+main {
+  width: 100%;
+  max-width: 780px;
+  padding: 16px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0px;
+  overflow: hidden;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-title {
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.card-body { padding: 14px; display:flex; flex-direction:column; gap:14px; }
+
+.key-row {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.key-label {
+  font-size: 7px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.key-input-wrap { position: relative; }
+
+.key-input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 8px;
+  padding: 10px 14px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color .2s, box-shadow .2s;
+  user-select: none;
+}
+
+.key-input:hover  { border-color: #ffffff; }
+.key-input.listening {
+  border-color: #ffffff;
+  box-shadow: none;
+  }
+
+.key-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 0px;
+  border: 1px solid var(--border);
+  font-size: 7px;
+  color: var(--muted);
+  min-width: 44px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 0px;
+  font-family: var(--mono);
+  font-size: 7px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all .18s;
+}
+
+.btn-primary {
+  background: #ffffff;
+  color: #000000;
+  border: 2px solid #ffffff;
+}
+.btn-primary:hover { background: #cccccc; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { color: var(--text); border-color: #ffffff; }
+
+.btn-success {
+  background: transparent;
+  color: #ffffff;
+  border: 1px solid #ffffff;
+}
+.btn-success:hover { background: #222222; }
+
+.btn-danger {
+  background: transparent;
+  color: #aaaaaa;
+  border: 1px solid #555555;
+}
+.btn-danger:hover { background: #222222; }
+
+.btn-row { display:flex; gap:10px; flex-wrap:wrap; }
+
+/* ── Editor overlay ── */
+#editor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #0a0a0a;
+  display: none;
+  flex-direction: column;
+}
+
+#editor-overlay.active { display: flex; }
+
+#editor-iframe {
+  flex: 1;
+  border: none;
+  background: #0a0a0a;
+}
+
+.editor-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.editor-title {
+  font-family: var(--display);
+  font-size: 8px;
+  font-weight: 700;
+  flex: 1;
+}
+
+.coord-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.coord-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0px;
+  padding: 4px 8px;
+}
+
+.coord-group label {
+  font-size: 7px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  min-width: 14px;
+}
+
+.coord-input {
+  width: 64px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 7px;
+  outline: none;
+  text-align: right;
+}
+
+#toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0px;
+  padding: 10px 14px;
+  font-size: 7px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: all .2s;
+  pointer-events: none;
+  z-index: 9999;
+}
+#toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Sayodevice O3C V1</div>
+  <h1>Handcam Overlay</h1>
+  <div class="status-row">
+    <span class="pill live">Live</span>
+    <span class="obs-url" onclick="copyUrl()" title="Click to copy">http://localhost:7027/overlay</span>
+  </div>
+</header>
+
+<main>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Key Bindings</span>
+      <button class="btn btn-ghost" onclick="resetKeys()" style="padding:6px 14px;font-size: 7px">Reset</button>
+    </div>
+    <div class="card-body">
+      <div class="key-row">
+        <span class="key-label">Left</span>
+        <div class="key-input-wrap">
+          <div class="key-input" id="key-left" onclick="startListen('left')" title="Click to rebind">ESC</div>
+        </div>
+        <span class="key-badge">L</span>
+      </div>
+      <div class="key-row">
+        <span class="key-label">Middle</span>
+        <div class="key-input-wrap">
+          <div class="key-input" id="key-middle" onclick="startListen('middle')" title="Click to rebind">Z</div>
+        </div>
+        <span class="key-badge">M</span>
+      </div>
+      <div class="key-row">
+        <span class="key-label">Right</span>
+        <div class="key-input-wrap">
+          <div class="key-input" id="key-right" onclick="startListen('right')" title="Click to rebind">X</div>
+        </div>
+        <span class="key-badge">R</span>
+      </div>
+      <div class="btn-row" style="margin-top:4px">
+        <button class="btn btn-primary" onclick="saveKeys()">Save Key Bindings</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Overlay View</span>
+    </div>
+    <div class="card-body">
+      <p style="font-size: 7px;color:var(--muted);line-height:2">
+        Adjust camera / rotation / scale. Changes apply live.
+      </p>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="openEditor()">Adjust Position
+        </button>
+        <button class="btn btn-ghost" onclick="window.open('/overlay','_blank')">Preview Overlay</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">OBS Setup</span></div>
+    <div class="card-body" style="gap:10px">
+      <p style="font-size: 7px;color:var(--muted);line-height:2">
+        Add a Browser Source in OBS. Enable transparent background.
+      </p>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:0px;padding:10px 14px;font-size: 7px;user-select:all;cursor:pointer" onclick="copyUrl()">
+        http://localhost:7027/overlay
+      </div>
+      <p style="font-size: 7px;color:var(--muted)">1920x1080, FPS 60</p>
+    </div>
+  </div>
+
+</main>
+
+<div id="editor-overlay">
+  <iframe id="editor-iframe" src="/overlay?editor=1" allow="keyboard-map"></iframe>
+  <div class="editor-bar">
+    <span class="editor-title">Position Editor</span>
+
+    <div class="coord-row">
+
+      <span style="font-size: 7px;color:var(--muted);letter-spacing:.1em">CAM POS</span>
+      <div class="coord-group">
+        <label>X</label><input class="coord-input" id="e-cx" type="number" step="0.1" value="0"/>
+      </div>
+      <div class="coord-group">
+        <label>Y</label><input class="coord-input" id="e-cy" type="number" step="0.1" value="2"/>
+      </div>
+      <div class="coord-group">
+        <label>Z</label><input class="coord-input" id="e-cz" type="number" step="0.1" value="5"/>
+      </div>
+
+      <span style="font-size: 7px;color:var(--muted);letter-spacing:.1em;margin-left:8px">FOV</span>
+      <div class="coord-group">
+        <input class="coord-input" id="e-fov" type="number" step="1" min="10" max="120" value="45" style="width:48px"/>
+      </div>
+    </div>
+
+    <div class="coord-row">
+
+      <span style="font-size: 7px;color:var(--muted);letter-spacing:.1em">ROT°</span>
+      <div class="coord-group">
+        <label>X</label><input class="coord-input" id="e-rx" type="number" step="1" value="0"/>
+      </div>
+      <div class="coord-group">
+        <label>Y</label><input class="coord-input" id="e-ry" type="number" step="1" value="0"/>
+      </div>
+      <div class="coord-group">
+        <label>Z</label><input class="coord-input" id="e-rz" type="number" step="1" value="0"/>
+      </div>
+
+      <span style="font-size: 7px;color:var(--muted);letter-spacing:.1em;margin-left:8px">SCALE</span>
+      <div class="coord-group">
+        <input class="coord-input" id="e-scale" type="number" step="0.05" min="0.01" value="1" style="width:56px"/>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-left:auto">
+      <button class="btn btn-ghost btn-danger" onclick="closeEditor(false)">Exit (Don't Save)</button>
+      <button class="btn btn-success" onclick="closeEditor(true)">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let cfg = {};
+let listening = null;
+let savedEditorConfig = null;
+
+async function loadConfig() {
+  const r = await fetch('/api/config');
+  cfg = await r.json();
+  applyConfigToUI();
+}
+
+function applyConfigToUI() {
+  const k = cfg.keys || {};
+  document.getElementById('key-left').textContent   = formatKey(k.left   || 'Escape');
+  document.getElementById('key-middle').textContent = formatKey(k.middle || 'z');
+  document.getElementById('key-right').textContent  = formatKey(k.right  || 'x');
+}
+
+function formatKey(k) {
+  if (k === 'Escape')    return 'ESC';
+  if (k === ' ')         return 'SPACE';
+  if (k === 'ArrowLeft') return '← Left';
+  if (k === 'ArrowRight')return '→ Right';
+  if (k === 'ArrowUp')   return '↑ Up';
+  if (k === 'ArrowDown') return '↓ Down';
+  return k.toUpperCase();
+}
+
+function startListen(slot) {
+  if (listening) stopListen();
+  listening = slot;
+  const el = document.getElementById(`key-${slot}`);
+  el.textContent = '…press key…';
+  el.classList.add('listening');
+
+  const handler = (e) => {
+    e.preventDefault();
+    cfg.keys = cfg.keys || {};
+    cfg.keys[slot] = e.key;
+    stopListen();
+    applyConfigToUI();
+    window.removeEventListener('keydown', handler);
+  };
+  window._keyHandler = handler;
+  window.addEventListener('keydown', handler);
+}
+
+function stopListen() {
+  if (!listening) return;
+  const el = document.getElementById(`key-${listening}`);
+  el.classList.remove('listening');
+  listening = null;
+}
+
+function resetKeys() {
+  cfg.keys = { left: 'Escape', middle: 'z', right: 'x' };
+  applyConfigToUI();
+  toast('Keys reset to defaults');
+}
+
+async function saveKeys() {
+  await fetch('/api/config/keys', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(cfg.keys)
+  });
+  toast('Key Bindings Saved');
+}
+
+//editor
+function openEditor() {
+  savedEditorConfig = JSON.parse(JSON.stringify(cfg));
+
+  //populate inputs
+  const cam = cfg.camera || {};
+  const mod = cfg.model  || {};
+  document.getElementById('e-cx').value    = cam.position?.x ?? 0;
+  document.getElementById('e-cy').value    = cam.position?.y ?? 2;
+  document.getElementById('e-cz').value    = cam.position?.z ?? 5;
+  document.getElementById('e-fov').value   = cam.fov ?? 45;
+  document.getElementById('e-rx').value    = mod.rotation?.x ?? 0;
+  document.getElementById('e-ry').value    = mod.rotation?.y ?? 0;
+  document.getElementById('e-rz').value    = mod.rotation?.z ?? 0;
+  document.getElementById('e-scale').value = mod.scale ?? 1;
+
+  document.getElementById('editor-overlay').classList.add('active');
+  document.getElementById('editor-iframe').src = '/overlay';
+
+  // live update as inputs change
+  ['e-cx','e-cy','e-cz','e-fov','e-rx','e-ry','e-rz','e-scale'].forEach(id => {
+    document.getElementById(id).addEventListener('input', pushEditorConfig);
+  });
+}
+
+async function pushEditorConfig() {
+  const cam = {
+    position: {
+      x: +document.getElementById('e-cx').value,
+      y: +document.getElementById('e-cy').value,
+      z: +document.getElementById('e-cz').value,
+    },
+    target: cfg.camera?.target || {x:0,y:0,z:0},
+    fov: +document.getElementById('e-fov').value,
+  };
+  const mod = {
+    position: cfg.model?.position || {x:0,y:0,z:0},
+    rotation: {
+      x: +document.getElementById('e-rx').value,
+      y: +document.getElementById('e-ry').value,
+      z: +document.getElementById('e-rz').value,
+    },
+    scale: +document.getElementById('e-scale').value,
+  };
+  cfg.camera = cam;
+  cfg.model  = mod;
+  await fetch('/api/config', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ camera: cam, model: mod })
+  });
+}
+
+async function closeEditor(save) {
+  if (!save && savedEditorConfig) {
+    //restore pre cfg
+    await fetch('/api/config', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(savedEditorConfig)
+    });
+    cfg = savedEditorConfig;
+  } else if (save) {
+    await pushEditorConfig();
+    toast('Settings Saved');
+  }
+  document.getElementById('editor-overlay').classList.remove('active');
+  savedEditorConfig = null;
+}
+
+
+function copyUrl() {
+  navigator.clipboard.writeText('http://localhost:7027/overlay');
+  toast('URL copied ✓');
+}
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+loadConfig();
+</script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Overlay</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; background:transparent; }
+  canvas { display:block; }
+</style>
+</head>
+<body>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+let cfg = null;
+
+async function fetchConfig() {
+  const r = await fetch('/api/config');
+  cfg = await r.json();
+}
+
+const renderer = new THREE.WebGLRenderer({
+  antialias: true,
+  alpha: true,
+  premultipliedAlpha: false
+});
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x000000, 0);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+
+let camera;
+
+function buildCamera() {
+  const cam = cfg.camera;
+  const fov = cam.fov ?? 45;
+  camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.01, 1000);
+  camera.position.set(cam.position.x, cam.position.y, cam.position.z);
+  camera.lookAt(cam.target.x, cam.target.y, cam.target.z);
+}
+
+function buildLights() {
+  scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+  const dir = new THREE.DirectionalLight(0xffffff, 2.0);
+  dir.position.set(3, 6, 4);
+  dir.castShadow = true;
+  scene.add(dir);
+  const fill = new THREE.DirectionalLight(0xaaccff, 0.5);
+  fill.position.set(-4, 2, -2);
+  scene.add(fill);
+}
+
+const loader = new GLTFLoader();
+const draco  = new DRACOLoader();
+draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+loader.setDRACOLoader(draco);
+
+const MODEL_FILES = [
+  'main-body.gltf',
+  'scroll.gltf',
+  'key-left.gltf',
+  'key-middle.gltf',
+  'key-right.gltf',
+];
+
+const keyModels = { left: null, middle: null, right: null };
+
+const KEY_PRESS_OFFSET = -0.15;
+const KEY_ANIM_SPEED   = 25;
+
+const keyState = {
+  left:   { pressed: false, y: 0, target: 0 },
+  middle: { pressed: false, y: 0, target: 0 },
+  right:  { pressed: false, y: 0, target: 0 },
+};
+
+function applyModelTransform(root) {
+  const m = cfg.model;
+  root.position.set(m.position.x, m.position.y, m.position.z);
+  root.rotation.set(
+    THREE.MathUtils.degToRad(m.rotation.x),
+    THREE.MathUtils.degToRad(m.rotation.y),
+    THREE.MathUtils.degToRad(m.rotation.z)
+  );
+  root.scale.setScalar(m.scale);
+}
+
+const root = new THREE.Group();
+scene.add(root);
+
+async function loadAllModels() {
+  for (const file of MODEL_FILES) {
+    try {
+      const gltf = await new Promise((res, rej) =>
+        loader.load(`/models/${file}`, res, undefined, rej)
+      );
+      const obj = gltf.scene;
+      root.add(obj);
+      if (file === 'key-left.gltf')   keyModels.left   = obj;
+      if (file === 'key-middle.gltf') keyModels.middle = obj;
+      if (file === 'key-right.gltf')  keyModels.right  = obj;
+    } catch(e) {
+      console.warn(`Could not load ${file}:`, e);
+    }
+  }
+  applyModelTransform(root);
+}
+
+function connectKeyStream() {
+  const es = new EventSource('/api/keys/stream');
+
+  es.onmessage = (e) => {
+    try {
+      const ev = JSON.parse(e.data);
+      const state = keyState[ev.slot];
+      if (!state) return;
+
+      if (ev.type === 'keydown' && !state.pressed) {
+        state.pressed = true;
+        state.target  = KEY_PRESS_OFFSET;
+      } else if (ev.type === 'keyup') {
+        state.pressed = false;
+        state.target  = 0;
+      }
+    } catch (_) {}
+  };
+
+  es.onerror = () => {
+    es.close();
+    setTimeout(connectKeyStream, 2000);
+  };
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+let lastConfigStr = '';
+async function pollConfig() {
+  const r = await fetch('/api/config');
+  const newCfg = await r.json();
+  const str = JSON.stringify(newCfg);
+  if (str !== lastConfigStr) {
+    lastConfigStr = str;
+    cfg = newCfg;
+    buildCamera();
+    applyModelTransform(root);
+  }
+}
+setInterval(pollConfig, 500);
+
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+
+  for (const [slot, state] of Object.entries(keyState)) {
+    const model = keyModels[slot];
+    if (!model) continue;
+    const diff = state.target - state.y;
+    const step = KEY_ANIM_SPEED * dt;
+    state.y = Math.abs(diff) < 0.0005
+      ? state.target
+      : state.y + Math.sign(diff) * Math.min(step, Math.abs(diff));
+    model.position.y = state.y;
+  }
+
+  renderer.render(scene, camera);
+}
+
+(async () => {
+  await fetchConfig();
+  lastConfigStr = JSON.stringify(cfg);
+  buildCamera();
+  buildLights();
+  connectKeyStream();
+  await loadAllModels();
+  animate();
+})();
+</script>
+</body>
+</html>

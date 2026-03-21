@@ -1,0 +1,33 @@
+{
+  "keys": {
+    "left": "Escape",
+    "middle": "z",
+    "right": "x"
+  },
+  "camera": {
+    "position": {
+      "x": 0,
+      "y": 6.8,
+      "z": -5
+    },
+    "target": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "fov": 35
+  },
+  "model": {
+    "position": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "rotation": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "scale": 1
+  }
+}
