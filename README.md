@@ -1,5 +1,5 @@
-# SayoDevice-Keypress-Overlay
-SayoDevice O3C v1 Live Keypress Overlay
+# SayoDevice-Visualizer
+SayoDevice O3C v1 Visualizer (Overlay)
 
 ## Showcase:
 <p align="center">
@@ -11,7 +11,7 @@ SayoDevice O3C v1 Live Keypress Overlay
 pip install -r requirements.txt
 python app.py
 ```
-And you will be redirected to http://localhost:7027
+And you will be directed to http://localhost:7027
 
 ## OBS Setup
 - Add Source - **Browser Source**
